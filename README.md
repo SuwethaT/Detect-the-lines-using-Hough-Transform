@@ -45,215 +45,178 @@ import matplotlib.pyplot as plt
 ###  Step 2: Read the Image
 
 ```python
-# Read the image using OpenCV
+image = cv2.imread("lan_img1.jpg")
 
-###
-# Your Code Here
-###
+if image is None:
+    raise FileNotFoundError("Could not load 'lan_img1.jpg'. Check the file path.")
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-image = cv2.imread('Qn_7_.jpg')
 ```
 
 ---
 
 ###  Step 3: Convert to Grayscale
 
-# Convert to grayscale.
+```python
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-###
-# Your Code Here
-###
+```
 
-gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+---
 
 ###  Step 4: Display Images
 
+```python
+plt.figure(figsize=(10,5))
 plt.figure(figsize=(10,5))
 
-###
-# Your Code Here
-###
+plt.figure(figsize=(10, 5))
 
 plt.subplot(1, 2, 1)
-plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+plt.imshow(image_rgb)
 plt.title("Original Image")
 plt.axis("off")
 
 plt.subplot(1, 2, 2)
-plt.imshow(gray_image, cmap="gray")
+plt.imshow(gray, cmap="gray")
 plt.title("Grayscale Image")
 plt.axis("off")
 
+plt.tight_layout()
 plt.show()
 
-###  Step 5: Thresholding
+```
+<img width="1044" height="352" alt="image" src="https://github.com/user-attachments/assets/eb2f9bd9-fb68-4a67-8f47-be80bffb9e5e" />
+
 ---
-# Apply thresholding
 
-threshold = cv2.threshold(
-    gray_image,
-    127,
-    255,
-    cv2.THRESH_BINARY
-)[1]
+###  Step 5: Thresholding
 
-plt.imshow(threshold, cmap="gray")
+```python
+
+
+threshold = 
+threshold = 150
+_, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+
+plt.figure(figsize=(6, 6))
+plt.imshow(thresh, cmap="gray")
 plt.title("Thresholded Image")
 plt.axis("off")
 plt.show()
+
+```
+<img width="800" height="470" alt="image" src="https://github.com/user-attachments/assets/564d94c7-d4df-4aa2-a1ff-930e8f78d528" />
+
 ---
 
 ###  Step 6: Region of Interest (ROI)
 
-```
-# ROI masking already provided
-height, width = threshold.shape
+```python
 
-# Define a broad polygonal region of interest
+height, width = thresh.shape
+
 roi_vertices = np.array([[
-    (0, height),
-    (0, int(height * 0.45)),
-    (width, int(height * 0.45)),
-    (width, height)
+    (int(0.1 * width), height),
+    (int(0.45 * width), int(0.6 * height)),
+    (int(0.55 * width), int(0.6 * height)),
+    (int(0.9 * width), height)
 ]], dtype=np.int32)
 
-roi_mask = np.zeros_like(threshold)
-cv2.fillPoly(roi_mask, roi_vertices, 255)
-roi_image = cv2.bitwise_and(threshold, roi_mask)
-```
+mask = np.zeros_like(thresh)
+cv2.fillPoly(mask, roi_vertices, 255)
+roi_masked = cv2.bitwise_and(thresh, mask)
 
----
-
-### Step 7: Edge Detection (Canny)
-
-```
-# Perform Edge Detection
-
-###
-# Your Code Here
-###
-
-edges = cv2.Canny(
-    gray_image,
-    50,
-    150
-)
-
-plt.imshow(edges, cmap="gray")
-plt.title("Canny Edge Detection")
+plt.figure(figsize=(6, 6))
+plt.imshow(roi_masked, cmap="gray")
+plt.title("ROI Masked Image")
 plt.axis("off")
 plt.show()
 ```
+<img width="917" height="481" alt="image" src="https://github.com/user-attachments/assets/5c74d1db-9284-48c8-8ed7-39f2874fd37a" />
+
+
+### Step 7: Edge Detection (Canny)
+
+```python
+
+
+edges = cv2.Canny(roi_masked, 50, 150)
+plt.figure(figsize=(6, 6))
+plt.imshow(edges, cmap="gray")
+plt.title("Edge Detected Image")
+plt.axis("off")
+plt.show()
+
+```
+<img width="835" height="486" alt="image" src="https://github.com/user-attachments/assets/91c64e9e-c0d3-42b2-b3ed-206b074f6158" />
 
 ---
 
 ###  Step 8: Gaussian Blur
 
-```
-# Apply Gaussian Blur
+```python
 
-###
-# Your Code Here
-###
 
-blurred = cv2.GaussianBlur(
-    edges,
-    (5, 5),
-    0
-)
-
-plt.imshow(blurred, cmap="gray")
-plt.title("Smoothed Image")
+smoothed = cv2.GaussianBlur(edges, (5, 5), 0)
+plt.figure(figsize=(6, 6))
+plt.imshow(smoothed, cmap="gray")
+plt.title("Smoothed (Blurred) Edge Image")
 plt.axis("off")
 plt.show()
+
 ```
+<img width="854" height="480" alt="image" src="https://github.com/user-attachments/assets/e35e534f-fae4-4284-b682-e7ba4b621ca8" />
 
 ---
 
 ###  Step 9: Hough Transform
 
 ```python
-# Detect lines using Hough Transform
-
-###
-# Your Code Here
-###
-
 lines = cv2.HoughLinesP(
-    blurred,
-    1,
-    np.pi / 180,
-    threshold=100,
-    minLineLength=50,
-    maxLineGap=10
+    smoothed,
+    rho=2,
+    theta=np.pi / 180,
+    threshold=50,
+    minLineLength=40,
+    maxLineGap=100
 )
+
+line_image = np.zeros_like(image)
+if lines is not None:
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        cv2.line(line_image, (x1, y1), (x2, y2), (255, 0, 0), 5)
+
+line_image_rgb = cv2.cvtColor(line_image, cv2.COLOR_BGR2RGB)
+
+plt.figure(figsize=(6, 6))
+plt.imshow(line_image_rgb)
+plt.title("Detected Lines")
+plt.axis("off")
+plt.show()
+
 ```
+<img width="844" height="478" alt="image" src="https://github.com/user-attachments/assets/dd93f644-7d87-48ce-90fe-580fbc0053cc" />
 
 ---
 
 ### Step 10: Lane Detection Logic
 
 ```
-# Already implemented
-# Step 5: Detect lines using HoughLinesP
-lines = cv2.HoughLinesP(
-    edges,
-    1,
-    np.pi / 180,
-    100,
-    minLineLength=50,
-    maxLineGap=10
-)
-# Step 6: Using a for loop, draw the lines on the original image using the detected coordinates
-# The lines variable contains the endpoints of the detected lines
-if lines is not None:
-    print(lines.shape)
-    print(lines[:5])
-    for line in lines:
-        x1, y1, x2, y2 = line
-        cv2.line(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-# Display the result of Hough Transform (Image with lines)
-plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))  # Image with lines drawn
-plt.title("Result of Hough Transform")
-plt.axis('off')
-
+final_output = cv2.addWeighted(image, 0.8, line_image, 1.0, 0.0)
+final_output_rgb = cv2.cvtColor(final_output, cv2.COLOR_BGR2RGB)
+plt.figure(figsize=(6, 6))
+plt.imshow(final_output_rgb)
+plt.title("Final Lane Detection Output")
+plt.axis("off")
+plt.show()
 ```
 
----
-
-##  Expected Output
-
-* Original image
-
-  <img width="463" height="587" alt="image" src="https://github.com/user-attachments/assets/a0b22bb2-e5d9-4e22-83a2-7e3a499e2e61" />
-
-* Grayscale image
-<img width="427" height="607" alt="image" src="https://github.com/user-attachments/assets/851e87d5-8a99-462a-9083-626bdddd5af2" />
-
-
-* Thresholded image
-<img width="416" height="563" alt="image" src="https://github.com/user-attachments/assets/1e3025d6-685e-44ec-b449-0c803fd3b2e0" />
-
-* Edge detected image
-<img width="452" height="566" alt="image" src="https://github.com/user-attachments/assets/20879e7c-6931-4b15-bae0-b15cf4df3d41" />
-
-* Smoothed image
-<img width="428" height="717" alt="image" src="https://github.com/user-attachments/assets/6bcf0dcd-765d-45f8-adba-bf1ecfb01d4f" />
-
-
-* Final lane detection output
-<img width="787" height="601" alt="image" src="https://github.com/user-attachments/assets/6376d537-76ae-4484-b8ed-552b2388e365" />
+<img width="853" height="497" alt="image" src="https://github.com/user-attachments/assets/3c89e08c-ef89-471c-8373-2f164ff17b7e" />
 
 ---
 
-##  Instructions
-
-* Fill ONLY in `# Your Code Here` sections
-* Do NOT change existing code
-* Run step-by-step
-* Verify outputs
-
----
 
 ## Result
 
@@ -263,5 +226,6 @@ Thus, the lane detection pipeline is successfully implemented by completing the 
 
 ##  Developed By
 
-* **Name:** SUWETHA T
-* **Register No:** 212225040446
+* **Name: Suwetha T
+* **Register No: 212225040446
+
